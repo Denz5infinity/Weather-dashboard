@@ -1,0 +1,373 @@
+/* src/css/auth.css
+   ─────────────────────────────────────────────
+   Styles for the monolithic authUI.js fragment.
+   Class names here match EXACTLY what authUI.js
+   puts in the DOM — no renames, no double-dashes.
+   ───────────────────────────────────────────── */
+
+/* ── Tokens (scoped so they don't fight global.css) ── */
+:root {
+  --auth-bg-deep:    #03091a;
+  --auth-blue-900:   #05112e;
+  --auth-blue-800:   #0a1f4e;
+  --auth-blue-500:   #1a56b0;
+  --auth-blue-400:   #2b72d5;
+  --auth-cyan-300:   #7dd3fc;
+  --auth-foam:       #e0f2fe;
+  --auth-text-pri:   #e2eeff;
+  --auth-text-sec:   #93b4d8;
+  --auth-text-muted: #4a6a96;
+  --auth-danger:     #f87171;
+  --auth-radius-sm:  8px;
+  --auth-radius-md:  14px;
+  --auth-radius-lg:  22px;
+  --auth-radius-xl:  32px;
+  --auth-ease:       cubic-bezier(0.22, 1, 0.36, 1);
+  --auth-t:          250ms;
+}
+
+/* ════════════════════════════════════════════
+   SCENE WRAPPER
+   .auth-scene  — full-viewport flex container
+════════════════════════════════════════════ */
+.auth-scene {
+  position: relative;
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1rem;
+  overflow: hidden;
+  background: linear-gradient(160deg, #0369a1 0%, #075985 52%, #0c4a6e 100%);
+  /* Grain texture for depth */
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E"),
+    linear-gradient(160deg, #0369a1 0%, #075985 52%, #0c4a6e 100%);
+}
+
+/* ════════════════════════════════════════════
+   ANIMATED ORBS  (.auth-bg__orb)
+════════════════════════════════════════════ */
+.auth-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  overflow: hidden;
+}
+
+.auth-bg__orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+}
+
+.auth-bg__orb--a {
+  width: 600px; height: 600px;
+  top: -180px; left: -150px;
+  background: radial-gradient(circle, #1d3a8a 0%, transparent 70%);
+  opacity: 0.45;
+  animation: orb-drift-a 18s ease-in-out infinite alternate;
+}
+
+.auth-bg__orb--b {
+  width: 500px; height: 500px;
+  bottom: -160px; right: -100px;
+  background: radial-gradient(circle, #0d3050 0%, transparent 70%);
+  opacity: 0.4;
+  animation: orb-drift-b 22s ease-in-out infinite alternate;
+}
+
+.auth-bg__orb--c {
+  width: 300px; height: 300px;
+  top: 50%; left: 55%;
+  background: radial-gradient(circle, #1e5799 0%, transparent 70%);
+  opacity: 0.25;
+  animation: orb-drift-c 14s ease-in-out infinite alternate;
+}
+
+@keyframes orb-drift-a { to { transform: translate(60px, 80px);  } }
+@keyframes orb-drift-b { to { transform: translate(-40px, -60px); } }
+@keyframes orb-drift-c { to { transform: translate(-80px, 40px); } }
+
+/* ════════════════════════════════════════════
+   CARD  (.auth-card)
+════════════════════════════════════════════ */
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 428px;
+  background: linear-gradient(145deg, rgba(14,19,38,0.95) 0%, rgba(9,13,26,0.97) 100%);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: var(--auth-radius-xl);
+  padding: 2.5rem 2.25rem;
+  box-shadow:
+    0 24px 80px rgba(0,0,0,0.55),
+    0 2px 12px rgba(0,0,0,0.3),
+    0 0 40px rgba(59,111,212,0.2);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  animation: card-rise 0.5s var(--auth-ease) both;
+}
+
+@keyframes card-rise {
+  from { opacity: 0; transform: translateY(24px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* ════════════════════════════════════════════
+   BRAND  (.auth-brand)
+════════════════════════════════════════════ */
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 2rem;
+}
+
+.auth-brand__icon {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.auth-brand__name {
+  font-family: 'Fraunces', 'Georgia', serif;
+  font-weight: 900;
+  font-size: 1.25rem;
+  letter-spacing: -0.03em;
+  background: linear-gradient(90deg, var(--auth-foam), var(--auth-cyan-300));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ════════════════════════════════════════════
+   PANELS  (.auth-panel  /  .panel--hidden)
+════════════════════════════════════════════ */
+.auth-panel {
+  animation: panel-slide-in 0.32s var(--auth-ease) both;
+}
+
+/* THE critical rule — hide the inactive panel */
+.panel--hidden {
+  display: none !important;
+}
+
+@keyframes panel-slide-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ════════════════════════════════════════════
+   TYPOGRAPHY
+════════════════════════════════════════════ */
+.auth-heading {
+  font-family: 'Fraunces', 'Georgia', serif;
+  font-weight: 700;
+  font-size: 1.85rem;
+  letter-spacing: -0.04em;
+  line-height: 1.1;
+  color: var(--auth-foam);
+  margin-bottom: 0.3rem;
+}
+
+/* authUI.js uses .auth-sub (not .auth-subheading) */
+.auth-sub {
+  font-size: 0.9rem;
+  color: var(--auth-text-sec);
+  margin-bottom: 1.75rem;
+}
+
+/* ════════════════════════════════════════════
+   FORM FIELDS
+   authUI.js uses .field-group / .field-label /
+   .field-input-wrap / .field-input / .toggle-pw
+════════════════════════════════════════════ */
+.field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-bottom: 1rem;
+}
+
+.field-label {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: var(--auth-text-sec);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field-input-wrap {
+  position: relative;
+}
+
+.field-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.09);
+  border-radius: var(--auth-radius-md);
+  color: var(--auth-text-pri);
+  font-family: 'Figtree', 'Inter', sans-serif;
+  font-size: 0.95rem;
+  outline: none;
+  transition:
+    border-color var(--auth-t),
+    background   var(--auth-t),
+    box-shadow   var(--auth-t);
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+/* Extra right padding when the eye-toggle sits inside */
+.field-input-wrap .field-input {
+  padding-right: 2.75rem;
+}
+
+.field-input::placeholder { color: var(--auth-text-muted); }
+
+.field-input:focus {
+  border-color: rgba(56,189,248,0.55);
+  background:   rgba(56,189,248,0.06);
+  box-shadow:   0 0 0 3px rgba(56,189,248,0.15);
+}
+
+/* Password visibility toggle */
+.toggle-pw {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--auth-text-muted);
+  padding: 0.2rem;
+  display: flex;
+  align-items: center;
+  transition: color var(--auth-t);
+}
+.toggle-pw:hover { color: var(--auth-text-pri); }
+
+/* ════════════════════════════════════════════
+   ERROR MESSAGE  (.auth-error)
+════════════════════════════════════════════ */
+.auth-error {
+  font-size: 0.82rem;
+  color: var(--auth-danger);
+  min-height: 1.1em;
+  margin-bottom: 0.5rem;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition:
+    opacity   var(--auth-t),
+    transform var(--auth-t);
+}
+
+.auth-error.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ════════════════════════════════════════════
+   BUTTONS
+   authUI.js uses .btn + .btn-primary  (single dash)
+   Keep these scoped with .auth-card to avoid
+   colliding with any dashboard .btn--primary
+════════════════════════════════════════════ */
+.auth-card .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Figtree', 'Inter', sans-serif;
+  font-size: 0.95rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--auth-radius-md);
+  cursor: pointer;
+  transition: all var(--auth-t) var(--auth-ease);
+  text-decoration: none;
+}
+
+/* Primary submit button */
+.auth-card .btn-primary {
+  width: 100%;
+  padding: 0.85rem 1.5rem;
+  background: linear-gradient(135deg, var(--auth-blue-500), #0a58a8);
+  color: #fff;
+  letter-spacing: 0.02em;
+  box-shadow: 0 4px 18px rgba(26,86,176,0.45), 0 1px 2px rgba(0,0,0,0.3);
+  margin-top: 0.25rem;
+}
+
+.auth-card .btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--auth-blue-400), var(--auth-blue-500));
+  box-shadow: 0 6px 28px rgba(43,114,213,0.55), 0 1px 2px rgba(0,0,0,0.3);
+  transform: translateY(-1px);
+}
+
+.auth-card .btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.auth-card .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* "Create one →" / "Sign in →" inline link-button */
+.btn-link {
+  background: none;
+  border: none;
+  color: var(--auth-cyan-300);
+  font-family: 'Figtree', 'Inter', sans-serif;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+  transition: color var(--auth-t);
+}
+.btn-link:hover {
+  color: var(--auth-foam);
+  text-decoration: underline;
+}
+
+/* ════════════════════════════════════════════
+   SWITCH LINE  (.auth-switch)
+════════════════════════════════════════════ */
+.auth-switch {
+  margin-top: 1.5rem;
+  font-size: 0.88rem;
+  color: var(--auth-text-sec);
+  text-align: center;
+}
+
+/* ════════════════════════════════════════════
+   RESPONSIVE
+════════════════════════════════════════════ */
+@media (max-width: 480px) {
+  .auth-card {
+    padding: 2rem 1.4rem;
+    border-radius: var(--auth-radius-lg);
+  }
+
+  .auth-heading {
+    font-size: 1.6rem;
+  }
+}
+
+/* ════════════════════════════════════════════
+   REDUCED MOTION
+════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce) {
+  .auth-card,
+  .auth-panel,
+  .auth-bg__orb {
+    animation: none !important;
+    transition: none !important;
+  }
+}
