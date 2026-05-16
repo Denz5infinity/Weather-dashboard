@@ -173,25 +173,37 @@ function showSignupView() {
 // ── Login form wiring ─────────────────────────
 
 function _wireLoginForm() {
+  console.log('[main] wiring login form...');
   const form     = $('login-form');
   const errEl    = $('login-error');
   const btn      = $('login-submit-btn');
-  const toSignup = $('go-to-signup');
+  const toSignup = $('to-signup');
 
-  toSignup?.addEventListener('click', showSignupView);
+  console.log('[main] login form elements:', { form: !!form, errEl: !!errEl, btn: !!btn, toSignup: !!toSignup });
+
+  toSignup?.addEventListener('click', () => {
+    console.log('[main] login→signup panel switch clicked');
+    showSignupView();
+  });
 
   form?.addEventListener('submit', async e => {
     e.preventDefault();
+    console.log('[main] login form submitted');
     const email    = $('login-email')?.value.trim()  ?? '';
     const password = $('login-password')?.value       ?? '';
 
+    console.log('[main] login form values extracted:', { email, passwordLength: password?.length });
     _clearFieldError(errEl);
     _setButtonLoading(btn, true);
 
+    console.log('[main] calling loginUser...');
     const { error } = await loginUser(email, password);
+    console.log('[main] loginUser returned:', { hasError: !!error, errorMsg: error });
     if (error) {
       _showFieldError(errEl, error);
       _setButtonLoading(btn, false);
+    } else {
+      console.log('[main] login succeeded, waiting for onAuthStateChanged...');
     }
     // Success → onAuthStateChanged fires automatically
   });
@@ -200,33 +212,48 @@ function _wireLoginForm() {
 // ── Signup form wiring ────────────────────────
 
 function _wireSignupForm() {
+  console.log('[main] wiring signup form...');
   const form    = $('signup-form');
   const errEl   = $('signup-error');
   const btn     = $('signup-submit-btn');
-  const toLogin = $('go-to-login');
+  const toLogin = $('to-login');
 
-  toLogin?.addEventListener('click', showLoginView);
+  console.log('[main] signup form elements:', { form: !!form, errEl: !!errEl, btn: !!btn, toLogin: !!toLogin });
+
+  toLogin?.addEventListener('click', () => {
+    console.log('[main] signup→login panel switch clicked');
+    showLoginView();
+  });
 
   form?.addEventListener('submit', async e => {
     e.preventDefault();
+    console.log('[main] signup form submitted');
     const email    = $('signup-email')?.value.trim()     ?? '';
     const password = $('signup-password')?.value          ?? '';
     const confirm  = $('signup-confirm')?.value           ?? '';
 
+    console.log('[main] signup form values extracted:', { email, passwordLength: password?.length, confirmLength: confirm?.length });
     _clearFieldError(errEl);
 
     if (password !== confirm) {
+      console.log('[main] password mismatch');
       _showFieldError(errEl, 'Passwords do not match.'); return;
     }
     if (password.length < 6) {
+      console.log('[main] password too short');
       _showFieldError(errEl, 'Password must be at least 6 characters.'); return;
     }
 
+    console.log('[main] calling signupUser...');
     _setButtonLoading(btn, true);
     const { error } = await signupUser(email, password);
+    console.log('[main] signupUser returned:', { hasError: !!error, errorMsg: error });
     if (error) {
+      console.log('[main] signup failed with error:', error);
       _showFieldError(errEl, error);
       _setButtonLoading(btn, false);
+    } else {
+      console.log('[main] signup succeeded, waiting for onAuthStateChanged...');
     }
     // Success → onAuthStateChanged fires automatically
   });
@@ -610,9 +637,13 @@ function _esc(str = '') {
 showSpinner();   // immediate — shown before Firebase resolves the session
 
 onAuthStateChanged(auth, user => {
+  console.log('[main] onAuthStateChanged fired:', { uid: user?.uid, email: user?.email });
+  
   if (user) {
+    console.log('[main] user authenticated, showing dashboard');
     showDashboard(user);
   } else {
+    console.log('[main] user not authenticated, showing login');
     showLoginView();
   }
 });

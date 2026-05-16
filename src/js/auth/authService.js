@@ -49,11 +49,19 @@ function friendlyMessage(err) {
  * @returns {Promise<{ user: import('firebase/auth').User | null, error: string | null }>}
  */
 export async function loginUser(email, password) {
+  console.log('[authService] loginUser called with:', { email, passwordLength: password?.length });
   try {
+    console.log('[authService] calling signInWithEmailAndPassword...');
     const credential = await signInWithEmailAndPassword(auth, email, password);
+    console.log('[authService] SUCCESS — user logged in:', credential.user.uid);
     return { user: credential.user, error: null };
   } catch (err) {
-    console.error('[authService] loginUser:', err.code, err.message);
+    console.error('[authService] FAILED:', {
+      code: err.code,
+      message: err.message,
+      customData: err.customData,
+      stack: err.stack,
+    });
     return { user: null, error: friendlyMessage(err) };
   }
 }
@@ -65,11 +73,19 @@ export async function loginUser(email, password) {
  * @returns {Promise<{ user: import('firebase/auth').User | null, error: string | null }>}
  */
 export async function signupUser(email, password) {
+  console.log('[authService] signupUser called with:', { email, passwordLength: password?.length });
   try {
+    console.log('[authService] calling createUserWithEmailAndPassword...');
     const credential = await createUserWithEmailAndPassword(auth, email, password);
+    console.log('[authService] SUCCESS — user created:', credential.user.uid);
     return { user: credential.user, error: null };
   } catch (err) {
-    console.error('[authService] signupUser:', err.code, err.message);
+    console.error('[authService] FAILED:', {
+      code: err.code,
+      message: err.message,
+      customData: err.customData,
+      stack: err.stack,
+    });
     return { user: null, error: friendlyMessage(err) };
   }
 }

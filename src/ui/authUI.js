@@ -89,6 +89,7 @@ export function renderAuthUI() {
 
             <button
               type="submit"
+              id="login-submit-btn"
               class="btn btn-primary"
               data-loading-text="Signing in…"
             >
@@ -163,6 +164,7 @@ export function renderAuthUI() {
 
             <button
               type="submit"
+              id="signup-submit-btn"
               class="btn btn-primary"
               data-loading-text="Creating account…"
             >
