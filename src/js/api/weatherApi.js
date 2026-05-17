@@ -15,11 +15,12 @@
 //   • Throw user-friendly Error messages; never return null
 // ─────────────────────────────────────────────
 
-const API_KEY     = import.meta.env.VITE_OPENWEATHER_API_KEY;
-const BASE_URL    = 'https://api.openweathermap.org/data/2.5/weather';
-const CACHE_TTL   = 30 * 60 * 1000;   // 30 minutes in ms
-const TIMEOUT_MS  = 8_000;             // 8 seconds
-const UNITS_KEY   = 'wt_units';        // localStorage key for unit preference
+const API_KEY      = import.meta.env.VITE_OPENWEATHER_API_KEY;
+const BASE_URL     = 'https://api.openweathermap.org/data/2.5/weather';
+const FORECAST_URL = 'https://api.openweathermap.org/data/2.5/forecast';
+const CACHE_TTL    = 30 * 60 * 1000;   // 30 minutes in ms
+const TIMEOUT_MS   = 8_000;             // 8 seconds
+const UNITS_KEY    = 'wt_units';        // localStorage key for unit preference
 const CACHE_PREFIX = 'wt_wx_';         // localStorage key prefix for weather cache
 
 // ── Unit helpers ──────────────────────────────
@@ -262,3 +263,60 @@ export async function fetchWeatherByCoords(lat, lon, units = getCachedUnits()) {
   writeCache(cacheKey, data);
   return data;
 }
+
+async function fetchForecast(url, cacheKey, context) {
+  const cached = readCache(cacheKey);
+  if (cached) {
+    console.debug('[weatherApi] forecast cache hit:', cacheKey);
+    return cached;
+  }
+
+  const res = await fetchWithTimeout(url);
+  if (!res.ok) throw new Error(await owmError(res, context));
+
+  const raw = await res.json();
+  writeCache(cacheKey, raw);
+  return raw;
+}
+
+/**
+ * Fetches 5-day forecast for a city name.
+ * @param {string}               city
+ * @param {'metric'|'imperial'}  [units]
+ * @returns {Promise<object>}   Raw OWM /forecast response
+ */
+export async function fetchForecastByCity(city, units = getCachedUnits()) {
+  if (!API_KEY) {
+    throw new Error('Weather API key missing — add VITE_OPENWEATHER_API_KEY to .env');
+  }
+
+  const trimmed = city?.trim();
+  if (!trimmed) throw new Error('Please enter a city name.');
+
+  const cacheKey = makeCacheKey('forecast-city', trimmed.toLowerCase(), units);
+  const url = `${FORECAST_URL}?q=${encodeURIComponent(trimmed)}&appid=${API_KEY}&units=${units}`;
+  return fetchForecast(url, cacheKey, trimmed);
+}
+
+/**
+ * Fetches 5-day forecast for GPS coordinates.
+ * @param {number}               lat
+ * @param {number}               lon
+ * @param {'metric'|'imperial'}  [units]
+ * @returns {Promise<object>}   Raw OWM /forecast response
+ */
+export async function fetchForecastByCoords(lat, lon, units = getCachedUnits()) {
+  if (!API_KEY) {
+    throw new Error('Weather API key missing — add VITE_OPENWEATHER_API_KEY to .env');
+  }
+  if (lat == null || lon == null) {
+    throw new Error('Invalid coordinates received from geolocation.');
+  }
+
+  const rLat = parseFloat(lat.toFixed(2));
+  const rLon = parseFloat(lon.toFixed(2));
+  const cacheKey = makeCacheKey('forecast-coords', `${rLat}:${rLon}`, units);
+  const url = `${FORECAST_URL}?lat=${rLat}&lon=${rLon}&appid=${API_KEY}&units=${units}`;
+  return fetchForecast(url, cacheKey, 'your location');
+}
+

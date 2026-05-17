@@ -7,6 +7,8 @@
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  sendEmailVerification,
+  signOut,
 } from 'firebase/auth';
 import { auth } from '../firebase/firebaseConfig.js';
 
@@ -38,6 +40,26 @@ const ERROR_MESSAGES = {
  */
 function friendlyMessage(err) {
   return ERROR_MESSAGES[err.code] ?? err.message ?? 'Something went wrong. Please try again.';
+}
+
+// ── Add this block AFTER friendlyMessage(), BEFORE loginUser() ──
+
+/**
+ * Sends a Firebase verification email to the currently signed-in user.
+ * Call this immediately after signupUser() succeeds.
+ *
+ * @param {import('firebase/auth').User} user — the user object from signupUser()
+ * @returns {Promise<{ sent: boolean, error: string | null }>}
+ */
+export async function sendVerificationEmail(user) {
+  try {
+    await sendEmailVerification(user);
+    return { sent: true, error: null };
+  } catch (err) {
+    console.error('[authService] sendVerificationEmail:', err.code, err.message);
+    // Don't expose raw Firebase errors — user just needs to know it failed
+    return { sent: false, error: 'Could not send verification email. Try again later.' };
+  }
 }
 
 // ── Public API ────────────────────────────────
@@ -72,20 +94,27 @@ export async function loginUser(email, password) {
  * @param {string} password
  * @returns {Promise<{ user: import('firebase/auth').User | null, error: string | null }>}
  */
+// NEW signupUser — replace the block above entirely:
 export async function signupUser(email, password) {
-  console.log('[authService] signupUser called with:', { email, passwordLength: password?.length });
   try {
-    console.log('[authService] calling createUserWithEmailAndPassword...');
     const credential = await createUserWithEmailAndPassword(auth, email, password);
-    console.log('[authService] SUCCESS — user created:', credential.user.uid);
+
+    // Send verification email BEFORE signing out.
+    // We do it here because the user object is freshly created and
+    // still authenticated — sendEmailVerification requires an active session.
+    await sendEmailVerification(credential.user);
+
+    // Sign out immediately so the unverified user cannot reach the dashboard.
+    // onAuthStateChanged will fire with null → showLoginView() runs.
+    // The verification screen is shown by _wireSignupForm() in main.js
+    // (see Step 5) before this sign-out completes.
+    await signOut(auth);
+
+    // Return the user so main.js knows signup succeeded and can show
+    // the "check your email" message.
     return { user: credential.user, error: null };
   } catch (err) {
-    console.error('[authService] FAILED:', {
-      code: err.code,
-      message: err.message,
-      customData: err.customData,
-      stack: err.stack,
-    });
+    console.error('[authService] signupUser:', err.code, err.message);
     return { user: null, error: friendlyMessage(err) };
   }
 }

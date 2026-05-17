@@ -35,9 +35,9 @@ export function renderAuthUI() {
       <div class="auth-card" role="main">
 
         <!-- Brand -->
-        <div class="auth-brand" aria-label="WeatherLens">
+        <div class="auth-brand" aria-label="WeatherTide">
           <span class="auth-brand__icon" aria-hidden="true">⛅</span>
-          <span class="auth-brand__name">WeatherLens</span>
+          <span class="auth-brand__name">WeatherTide</span>
         </div>
 
         <!-- ════════════════════════════════

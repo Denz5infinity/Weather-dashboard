@@ -277,3 +277,118 @@ export function renderWeatherError(container, message) {
     </div>
   `;
 }
+
+export function renderForecastSkeleton(container) {
+  const wrap = container.querySelector('.weather-wrap');
+  if (!wrap) return;
+
+  wrap.insertAdjacentHTML('beforeend', /* html */`
+    <section class="forecast-section skeleton-mode" aria-hidden="true">
+      <h2 class="forecast-heading">5-day forecast</h2>
+      <div class="forecast-row">
+        ${Array(5).fill(0).map(() => `
+          <article class="forecast-card">
+            <div class="sk sk--day"></div>
+            <div class="sk sk--fc-icon"></div>
+            <div class="sk sk--fc-temp"></div>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `);
+}
+
+export function renderForecast(container, days) {
+  const wrap = container.querySelector('.weather-wrap');
+  if (!wrap) return;
+
+  const existing = wrap.querySelector('.forecast-section');
+  if (existing) existing.remove();
+
+  wrap.insertAdjacentHTML('beforeend', /* html */`
+    <section class="forecast-section" aria-label="5-day weather forecast">
+      <h2 class="forecast-heading">5-day forecast</h2>
+      <div class="forecast-row">
+        ${days.map(day => `
+          <article class="forecast-card">
+            <div class="fc-day">${esc(day.day)}</div>
+            <div class="fc-icon" aria-hidden="true">${emoji(day.icon)}</div>
+            <div class="fc-temps">
+              <span class="fc-temp--hi">${day.high}${day.units === 'imperial' ? '°F' : '°C'}</span>
+              <span class="fc-temp--lo">${day.low}${day.units === 'imperial' ? '°F' : '°C'}</span>
+            </div>
+            <p class="fc-desc">${esc(day.description)}</p>
+            <div class="fc-humidity">Humidity ${day.avgHumidity}%</div>
+          </article>
+        `).join('')}
+      </div>
+    </section>
+  `);
+}
+
+export function renderForecastError(container, message) {
+  const wrap = container.querySelector('.weather-wrap');
+  if (!wrap) return;
+
+  const existing = wrap.querySelector('.forecast-section');
+  if (existing) existing.remove();
+
+  wrap.insertAdjacentHTML('beforeend', /* html */`
+    <section class="forecast-section forecast-error" aria-label="Forecast unavailable">
+      <h2 class="forecast-heading">Forecast unavailable</h2>
+      <div class="forecast-error__msg">${esc(message)}</div>
+    </section>
+  `);
+}
+
+export function normaliseForecast(raw, units = 'metric') {
+  const timezoneOffset = raw.city?.timezone ?? 0;
+  const grouped = new Map();
+
+  raw.list.forEach(item => {
+    const utcMs = item.dt * 1000 + new Date().getTimezoneOffset() * 60_000;
+    const localMs = utcMs + timezoneOffset * 1000;
+    const date = new Date(localMs);
+    const day = date.toLocaleDateString('en-US', { weekday: 'short' });
+    const temp = Math.round(item.main.temp);
+    const humidity = item.main.humidity;
+    const icon = item.weather?.[0]?.icon ?? '01d';
+    const description = item.weather?.[0]?.description ?? '';
+    const time = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+
+    const current = grouped.get(day) || {
+      day,
+      icon,
+      high: temp,
+      low: temp,
+      description,
+      humidityTotal: humidity,
+      count: 1,
+      hours: [],
+    };
+
+    current.high = Math.max(current.high, temp);
+    current.low = Math.min(current.low, temp);
+    current.humidityTotal += humidity;
+    current.count += 1;
+    current.hours.push({ time, temp, icon });
+
+    if (item.dt_txt?.includes('12:00:00') || current.hours.length === 1) {
+      current.icon = icon;
+      current.description = description;
+    }
+
+    grouped.set(day, current);
+  });
+
+  return Array.from(grouped.values()).slice(0, 5).map(day => ({
+    day: day.day,
+    icon: day.icon,
+    high: day.high,
+    low: day.low,
+    description: day.description,
+    avgHumidity: Math.round(day.humidityTotal / day.count),
+    hours: day.hours,
+    units,
+  }));
+}

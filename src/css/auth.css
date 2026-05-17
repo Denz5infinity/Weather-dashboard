@@ -371,3 +371,67 @@
     transition: none !important;
   }
 }
+
+/* ── Add to the END of src/css/auth.css ── */
+
+/* ════════════════════════════════════════════
+   VERIFICATION SENT SCREEN
+   Reuses existing .auth-scene, .auth-card,
+   .auth-heading, .auth-sub, .btn-primary.
+   Only new elements need styles.
+════════════════════════════════════════════ */
+
+.verify-icon {
+  font-size: 3rem;
+  display: block;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  animation: bob 2.5s ease-in-out infinite;
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+/* Highlighted email address inside the subtitle */
+.verify-email {
+  color: var(--auth-cyan-300, #7dd3fc);
+  font-style: normal;
+  word-break: break-all;   /* long emails don't overflow the card */
+}
+
+/* Numbered step list */
+.verify-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  margin: 1.5rem 0 0.5rem;
+  padding: 1.1rem 1.25rem;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 12px;
+}
+
+.verify-step {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 0.88rem;
+  color: var(--auth-text-sec, #93b4d8);
+}
+
+.verify-step__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  min-width: 22px;               /* prevent squash */
+  border-radius: 50%;
+  background: rgba(56, 189, 248, 0.15);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  color: #7dd3fc;
+  font-size: 0.72rem;
+  font-weight: 700;
+}

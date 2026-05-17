@@ -26,11 +26,12 @@
   flex: 1;
   display: flex;
   flex-direction: column;
+  /* vertical centering until forecast fills the space */
   justify-content: flex-start;
-  padding: 3rem 1.5rem 4rem;
-  width: min(1150px, 100%);
+  padding: 2rem 1.5rem 3rem;
+  max-width: 860px;          /* tighter than before — card feels contained */
+  width: 100%;
   margin: 0 auto;
-  padding-top: 4rem;
 }
 
 /* ════════════════════════════════════════════
@@ -40,7 +41,7 @@
   display: flex;
   align-items: center;
   gap: 1rem;
-  padding: 1rem 1.5rem;
+  padding: 0.7rem 1.5rem;
   flex-wrap: nowrap;          /* keep everything on one line on desktop */
 }
 
@@ -60,8 +61,8 @@
   gap: 0.5rem;
   flex: 1;
   min-width: 0;
-  max-width: 520px;  /* prevent search from growing too wide on large screens */
-  margin: 0 auto;
+  max-width: 420px;          /* stop it dominating the nav */
+  margin: 0 auto;            /* nudge toward center */
 }
 
 .search-form  { flex: 1; min-width: 0; }
@@ -69,7 +70,7 @@
 .search-wrap {
   display: flex;
   align-items: center;
-  height: 48px;              /* explicit height so btn matches */
+  height: 38px;              /* explicit height so btn matches */
   gap: 0.4rem;
   background: rgba(255,255,255,0.06);
   border: 1px solid rgba(255,255,255,0.1);
@@ -112,7 +113,7 @@
 
 /* Search submit btn — same height as search-wrap */
 .btn--search {
-  height: 32px;
+  height: 28px;
   padding: 0 0.9rem;
   font-size: 0.83rem;
   font-weight: 600;
@@ -126,7 +127,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  height: 40px;            /* match search-wrap height */
+  height: 38px;
   padding: 0 0.85rem;
   font-size: 0.82rem;
   white-space: nowrap;
@@ -174,10 +175,13 @@
 }
 
 .current-card {
-  max-width: 1100px;
+  /* Slightly wider max-width so the stat chips breathe better */
+  max-width: 800px;
   width: 100%;
   padding: 2rem 2rem 1.75rem;
   border-radius: 20px;
+
+  /* Stronger depth shadow */
   box-shadow:
     0 2px 0   rgba(255,255,255,0.05) inset,   /* top highlight */
     0 20px 60px rgba(0,0,0,0.45),
@@ -285,7 +289,7 @@
 }
 
 .weather-emoji {
-  font-size: 6rem;           
+  font-size: 5rem;           /* was floating small; now anchors the right */
   line-height: 1;
   display: block;
   filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
@@ -494,4 +498,204 @@
 ════════════════════════════════════════════ */
 @media (prefers-reduced-motion: reduce) {
   .weather-wrap, .weather-emoji, .sk { animation: none !important; }
+}
+
+/* ════════════════════════════════════════════
+   PHASE 5+6 — FORECAST STRIP
+   Glassmorphism cards consistent with .current-card.
+   Horizontal scroll on mobile, wrapping grid on wider screens.
+════════════════════════════════════ */
+
+/* Section wrapper */
+.forecast-section {
+  width: 100%;
+  animation: fadeUp 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: 120ms;   /* slight delay so current card lands first */
+}
+
+.forecast-heading {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(147, 180, 216, 0.6);
+  margin-bottom: 0.85rem;
+  padding-left: 0.1rem;
+}
+
+/* ── The horizontal strip ── */
+.forecast-strip {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.65rem;
+}
+
+/* ── Individual forecast card ── */
+.forecast-card {
+  /* Inherit glass look from .glass-card */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 1.1rem 0.75rem 1rem;
+  border-radius: 16px;
+  text-align: center;
+  cursor: default;
+
+  /* Phase 6: slide-up entrance with staggered delay (set inline per card) */
+  animation: forecastCardIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  /* Phase 6: smooth hover lift */
+  transition:
+    transform     200ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow    200ms cubic-bezier(0.22, 1, 0.36, 1),
+    background    200ms ease,
+    border-color  200ms ease;
+}
+
+@keyframes forecastCardIn {
+  from { opacity: 0; transform: translateY(18px) scale(0.96); }
+  to   { opacity: 1; transform: translateY(0)    scale(1); }
+}
+
+/* Phase 6: hover state — lift + subtle glow */
+.forecast-card:hover {
+  transform: translateY(-4px);
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow:
+    0 12px 32px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(125, 211, 252, 0.08),
+    var(--glass-shadow, 0 8px 32px rgba(0,0,0,0.35));
+}
+
+/* Day label — e.g. "Mon" */
+.forecast-card__day {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: rgba(147, 180, 216, 0.9);
+}
+
+/* Date label — e.g. "Jun 12" */
+.forecast-card__date {
+  font-size: 0.68rem;
+  color: rgba(147, 180, 216, 0.5);
+  margin-top: -0.1rem;
+  margin-bottom: 0.2rem;
+}
+
+/* Big weather emoji */
+.forecast-card__icon {
+  font-size: 2.4rem;
+  line-height: 1;
+  margin: 0.3rem 0;
+  /* Phase 6: gentle float on hover via parent:hover */
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.forecast-card:hover .forecast-card__icon {
+  transform: scale(1.12) translateY(-2px);
+}
+
+/* High / Low temperature row */
+.forecast-card__temps {
+  display: flex;
+  align-items: baseline;
+  gap: 0.2rem;
+  margin-top: 0.1rem;
+}
+
+.forecast-card__high {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #e2eeff;
+}
+
+.forecast-card__sep {
+  font-size: 0.7rem;
+  color: rgba(147, 180, 216, 0.3);
+}
+
+.forecast-card__low {
+  font-size: 0.8rem;
+  font-weight: 400;
+  color: rgba(147, 180, 216, 0.6);
+}
+
+/* Condition description — truncated to one line */
+.forecast-card__desc {
+  font-size: 0.68rem;
+  color: rgba(147, 180, 216, 0.6);
+  line-height: 1.3;
+  margin-top: 0.2rem;
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Humidity row */
+.forecast-card__humidity {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.68rem;
+  color: rgba(125, 211, 252, 0.7);
+  margin-top: 0.35rem;
+}
+
+/* ── Phase 5: Responsive behaviour ── */
+
+/* Tablet (768px): 5 cards can still fit but get tighter padding */
+@media (max-width: 768px) {
+  .forecast-strip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+  .forecast-card {
+    padding: 0.9rem 0.5rem;
+  }
+  .forecast-card__icon { font-size: 2rem; }
+  .forecast-card__desc { display: none; } /* hide desc on tablet to save space */
+}
+
+/* Mobile (560px): switch to horizontal scroll strip */
+@media (max-width: 560px) {
+  .forecast-strip {
+    /* Exit the grid model entirely — become a scroll row */
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.55rem;
+    padding-bottom: 0.75rem;     /* room for scrollbar */
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+
+    /* Hide the scrollbar visually but keep it functional */
+    scrollbar-width: none;
+  }
+  .forecast-strip::-webkit-scrollbar { display: none; }
+
+  .forecast-card {
+    /* Fixed width so cards don't compress */
+    flex: 0 0 130px;
+    scroll-snap-align: start;
+    padding: 1rem 0.8rem;
+  }
+
+  .forecast-card__desc { display: block; white-space: nowrap; }
+
+  /* Visual hint that list scrolls: fade the right edge */
+  .forecast-section::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    width: 40px;
+    height: 100%;
+    background: linear-gradient(to left, rgba(3,9,26,0.6), transparent);
+    pointer-events: none;
+  }
+  .forecast-section { position: relative; }
 }

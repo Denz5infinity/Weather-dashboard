@@ -21,8 +21,9 @@
 //   js/auth/signup           → renderAuthUI   (DocumentFragment)
 //   js/api/weatherApi        → fetchWeatherByCity, fetchWeatherByCoords,
 //                              getCachedUnits, setCachedUnits
-//   js/ui/renderWeather      → renderWeatherSkeleton, renderCurrentWeather,
-//                              renderForecast, renderWeatherError
+//   js/ui/renderWeather      → renderWeatherSkeleton, renderForecastSkeleton,
+//                              renderCurrentWeather, renderForecast, renderWeatherError,
+//                              normaliseForecast
 //   js/ui/theme              → updateWeatherTheme, resetTheme
 //   js/utils/debounce        → debounce
 // ─────────────────────────────────────────────
@@ -43,6 +44,8 @@ import { renderAuthUI }              from '../ui/authUI.js';
 import {
   fetchWeatherByCity,
   fetchWeatherByCoords,
+  fetchForecastByCity,
+  fetchForecastByCoords,
   getCachedUnits,
   setCachedUnits,
 } from '../js/api/weatherApi.js';
@@ -51,7 +54,11 @@ import {
 import {
   renderWeatherSkeleton,
   renderCurrentWeather,
+  renderForecastSkeleton,
+  renderForecast,
+  renderForecastError,
   renderWeatherError,
+  normaliseForecast,
 } from '../ui/renderWeather.js';
 
 // ── Theme ─────────────────────────────────────
@@ -66,6 +73,7 @@ import { debounce } from './utils/debounce.js';
 
 const DEFAULT_CITY  = 'Mombasa';            // shown when no lastCity is stored
 const LAST_CITY_KEY = 'wt_last_city';       // localStorage key
+const ALLOW_UNVERIFIED_EMAIL_IN_DEV = import.meta.env.DEV;
 
 // ════════════════════════════════════════════════════════════
 //  GLOBAL STATE
@@ -159,6 +167,7 @@ function showSpinner() {
 // ════════════════════════════════════════════════════════════
 
 function showLoginView() {
+  console.log('[main] showLoginView() running');
   resetTheme();
   renderInto(renderAuthUI());
   _wireLoginForm();
@@ -168,6 +177,67 @@ function showSignupView() {
   resetTheme();
   renderInto(renderAuthUI());
   _wireSignupForm();
+}
+
+// ── Add this AFTER showSignupView(), BEFORE _wireLoginForm() ──
+
+// ── Verification sent screen ──────────────────
+// Shown immediately after a successful signup.
+// The user is already signed out at this point (done inside signupUser()).
+
+function showVerificationSentView(email) {
+  resetTheme();
+  renderInto(/* html */`
+    <div class="auth-scene">
+      <div class="auth-bg" aria-hidden="true">
+        <div class="auth-bg__orb auth-bg__orb--a"></div>
+        <div class="auth-bg__orb auth-bg__orb--b"></div>
+      </div>
+
+      <div class="auth-card glass-card" role="main">
+        <div class="auth-card__inner">
+
+          <div class="verify-icon" aria-hidden="true">📧</div>
+
+          <hgroup class="auth-hgroup">
+            <h1 class="auth-heading">Check your inbox</h1>
+            <p class="auth-sub">
+              We sent a verification link to
+              <strong class="verify-email">${_esc(email)}</strong>.
+              Click the link in that email, then come back and sign in.
+            </p>
+          </hgroup>
+
+          <div class="verify-steps">
+            <div class="verify-step">
+              <span class="verify-step__num">1</span>
+              <span>Open the email from Firebase / WeatherTide</span>
+            </div>
+            <div class="verify-step">
+              <span class="verify-step__num">2</span>
+              <span>Click the verification link</span>
+            </div>
+            <div class="verify-step">
+              <span class="verify-step__num">3</span>
+              <span>Return here and sign in</span>
+            </div>
+          </div>
+
+          <button id="verify-back-btn" class="btn btn-primary" style="width:100%;margin-top:1.5rem">
+            Go to Sign In
+          </button>
+
+          <p class="auth-switch" style="margin-top:1rem;font-size:.8rem;opacity:.6">
+            Didn't receive it? Check your spam folder. The link expires in 24 hours.
+          </p>
+
+        </div>
+      </div>
+    </div>
+  `);
+
+  // Wire the single button on this screen
+  $('verify-back-btn')?.addEventListener('click', showLoginView);
 }
 
 // ── Login form wiring ─────────────────────────
@@ -193,18 +263,44 @@ function _wireLoginForm() {
     const password = $('login-password')?.value       ?? '';
 
     console.log('[main] login form values extracted:', { email, passwordLength: password?.length });
+    // NEW — replace the block above with this:
     _clearFieldError(errEl);
     _setButtonLoading(btn, true);
 
-    console.log('[main] calling loginUser...');
-    const { error } = await loginUser(email, password);
-    console.log('[main] loginUser returned:', { hasError: !!error, errorMsg: error });
+    const { user, error } = await loginUser(email, password);
+
+    console.log('[main] loginUser result:', {
+      hasUser: !!user,
+      emailVerified: user?.emailVerified,
+      devEmailBypass: ALLOW_UNVERIFIED_EMAIL_IN_DEV,
+    });
+
     if (error) {
       _showFieldError(errEl, error);
       _setButtonLoading(btn, false);
-    } else {
-      console.log('[main] login succeeded, waiting for onAuthStateChanged...');
+      return;
     }
+
+    // loginUser() succeeded — but we must check emailVerified
+    // BEFORE onAuthStateChanged routes to the dashboard.
+    if (!user.emailVerified && !ALLOW_UNVERIFIED_EMAIL_IN_DEV) {
+      console.log('[main] login blocked: email is not verified; signing out');
+      // Sign them back out — they don't get dashboard access yet.
+      // Import signOut from firebase/auth is already at the top of main.js.
+      await signOut(auth);
+      _showFieldError(errEl,
+        'Please verify your email before signing in. Check your inbox for the verification link.'
+      );
+      _setButtonLoading(btn, false);
+      return;
+    }
+
+    if (!user.emailVerified && ALLOW_UNVERIFIED_EMAIL_IN_DEV) {
+      console.warn('[main] DEV ONLY: allowing unverified email through login flow');
+    }
+
+    // emailVerified = true → onAuthStateChanged fires → showDashboard()
+    // No action needed here.
     // Success → onAuthStateChanged fires automatically
   });
 }
@@ -244,18 +340,17 @@ function _wireSignupForm() {
       _showFieldError(errEl, 'Password must be at least 6 characters.'); return;
     }
 
-    console.log('[main] calling signupUser...');
+    // NEW — replace the block above with this:
     _setButtonLoading(btn, true);
-    const { error } = await signupUser(email, password);
-    console.log('[main] signupUser returned:', { hasError: !!error, errorMsg: error });
+    const { user, error } = await signupUser(email, password);
+
     if (error) {
-      console.log('[main] signup failed with error:', error);
       _showFieldError(errEl, error);
       _setButtonLoading(btn, false);
-    } else {
-      console.log('[main] signup succeeded, waiting for onAuthStateChanged...');
+      return;
     }
-    // Success → onAuthStateChanged fires automatically
+
+    showVerificationSentView(user.email);
   });
 }
 
@@ -292,8 +387,9 @@ function _buildDashboardShell(user) {
                 type="search"
                 autocomplete="off"
                 spellcheck="false"
-                placeholder="Search city…"
+                placeholder="City, country"
                 aria-label="City name"
+                aria-describedby="search-error"
                 aria-autocomplete="list"
               />
               <button type="submit" class="btn btn--search" aria-label="Search">
@@ -381,6 +477,11 @@ function _buildDashboardShell(user) {
 // ════════════════════════════════════════════════════════════
 
 function showDashboard(user) {
+  console.log('[main] showDashboard() running:', {
+    uid: user?.uid,
+    email: user?.email,
+    emailVerified: user?.emailVerified,
+  });
   renderInto(_buildDashboardShell(user));
   _wireDashboard(user);
 
@@ -547,25 +648,36 @@ async function loadWeather({ city, lat, lon, source = 'manual' }) {
 
   // ── Step 1: Show skeleton immediately ────────
   renderWeatherSkeleton(container);
+  renderForecastSkeleton(container);
 
   try {
     // ── Step 2: Fetch (respects 30-min cache + 8s timeout) ──
-    const data = city
-      ? await fetchWeatherByCity(city, state.units)
-      : await fetchWeatherByCoords(lat, lon, state.units);
+    const currentPromise = city
+      ? fetchWeatherByCity(city, state.units)
+      : fetchWeatherByCoords(lat, lon, state.units);
+
+    const forecastPromise = city
+      ? fetchForecastByCity(city, state.units)
+      : fetchForecastByCoords(lat, lon, state.units);
+
+    const forecastPending = forecastPromise.catch(err => ({ __forecastError: err }));
+    const data = await currentPromise;
 
     // ── Step 3: Render current conditions card ──
-    // renderCurrentWeather reads data.units internally — no third arg needed
     renderCurrentWeather(container, data);
 
     // ── Step 4: Apply visual theme ───────────────
     updateWeatherTheme(data.condition, data.icon);
 
     // ── Step 5: Render 5-day forecast below ──────
-    // renderForecast expects OWM's /forecast payload, which
-    // weatherApi.js doesn't fetch in this minimal version.
-    // If you extend weatherApi to return forecast, uncomment:
-    // renderForecast(container, data.forecast, data.units);
+    const forecastResult = await forecastPending;
+    if (forecastResult && forecastResult.__forecastError) {
+      console.warn('[main] forecast load failed:', forecastResult.__forecastError);
+      renderForecastError(container, 'Forecast unavailable right now.');
+    } else {
+      const forecastDays = normaliseForecast(forecastResult, state.units);
+      renderForecast(container, forecastDays);
+    }
 
     // ── Step 6: Persist last city (by name) ──────
     if (data.city) {
@@ -636,14 +748,34 @@ function _esc(str = '') {
 
 showSpinner();   // immediate — shown before Firebase resolves the session
 
-onAuthStateChanged(auth, user => {
-  console.log('[main] onAuthStateChanged fired:', { uid: user?.uid, email: user?.email });
-  
-  if (user) {
-    console.log('[main] user authenticated, showing dashboard');
-    showDashboard(user);
-  } else {
-    console.log('[main] user not authenticated, showing login');
+// NEW — replace the block above:
+onAuthStateChanged(auth, async user => {
+  console.log('[main] onAuthStateChanged fired:', {
+    hasUser: !!user,
+    uid: user?.uid,
+    email: user?.email,
+    emailVerified: user?.emailVerified,
+    devEmailBypass: ALLOW_UNVERIFIED_EMAIL_IN_DEV,
+  });
+
+  if (!user) {
+    console.log('[main] auth route: no user -> showLoginView()');
     showLoginView();
+    return;
   }
+
+  if (!user.emailVerified && !ALLOW_UNVERIFIED_EMAIL_IN_DEV) {
+    console.log('[main] auth route: unverified email -> signOut() -> showLoginView()');
+    await signOut(auth);
+    showLoginView();
+    return;
+  }
+
+  if (!user.emailVerified && ALLOW_UNVERIFIED_EMAIL_IN_DEV) {
+    console.warn('[main] DEV ONLY: bypassing email verification in auth listener');
+  }
+
+  // Verified user — proceed to dashboard
+  console.log('[main] auth route: allowed -> showDashboard()');
+  showDashboard(user);
 });
