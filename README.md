@@ -38,7 +38,7 @@ The project is structured as a Vanilla JavaScript single-page application. JavaS
 ![login-page Screenshot](./assets/images/login-page-preview.webp)
 
 
-![signup-page Screenshot](../assets/images/signup-page-preview.webp)
+![signup-page Screenshot](./src/assets/images/signup-page-preview.webp)
  
 
 ##  Live Demo
