@@ -31,11 +31,11 @@ The project is structured as a Vanilla JavaScript single-page application. JavaS
 
 
 
-![Weather Dashboard Screenshot](./assets/images/web-preview.webp)
+![Weather Dashboard Screenshot](./src/assets/images/web-preview.webp)
 
 
 
-![login-page Screenshot](./assets/images/login-page-preview.webp)
+![login-page Screenshot](./src/assets/images/login-page-preview.webp)
 
 
 ![signup-page Screenshot](./src/assets/images/signup-page-preview.webp)
