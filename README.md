@@ -45,8 +45,8 @@ The project is structured as a Vanilla JavaScript single-page application. JavaS
 
 You can view the live version of the Weather Dashboard here:
 
-🌐 **Live Site:** https://your-vercel-project-link.vercel.app  
-💻 **Source Code:** https://denz5infinity.github.io/Weather-dashboard/
+🌐 **Live Site:** [View Project](https://your-vercel-project-link.vercel.app)  
+💻 **Source Code:** [GitHub Repo](https://denz5infinity.github.io/Weather-dashboard/)
 
 ## Tech Stack
 
